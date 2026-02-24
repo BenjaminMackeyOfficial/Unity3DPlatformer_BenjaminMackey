@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 /// <summary>
 /// Handles player input, animation, and feedback effects for character movement.
@@ -12,6 +14,7 @@ public class PlayerController : MonoBehaviour
     public ThirdPersonCamera CameraFollower {get; private set;}
     private Animator characterAnimator;
     private AdvancedMoveController moveController;
+    private SkateboardControl skateboardControl;
     private Rigidbody rb;
     private DashController dashController;
     
@@ -23,17 +26,23 @@ public class PlayerController : MonoBehaviour
 
     private HealthController healthComponent;
     private PlayerInput playerInput;
+    private InputAction toggleBoard;
+    private bool onSkateboard = false;
+    private float skateboardCooldownCounter = 0f;
+    public float skateboardTransitionCooldown;
     
     public bool JoinedThroughGameManager { get; set; } = false;
     public static List<PlayerController> players = new List<PlayerController>();
     private void OnEnable()
     {
+        toggleBoard.performed += ToggleBoard;
         if(moveController != null)
             moveController.enabled = true;
     }
 
     private void OnDisable()
     {
+        toggleBoard.performed -= ToggleBoard;
         if (moveController != null)
             {
                 inputVector = Vector3.zero;
@@ -61,6 +70,7 @@ public class PlayerController : MonoBehaviour
 
         // Cache component references
         moveController = GetComponent<AdvancedMoveController>();
+        skateboardControl = GetComponent<SkateboardControl>();
         rb = GetComponent<Rigidbody>();
         CameraFollower = GetComponentInChildren<ThirdPersonCamera>();
         characterAnimator = GetComponentInChildren<Animator>();
@@ -76,9 +86,22 @@ public class PlayerController : MonoBehaviour
             DontDestroyOnLoad(CameraFollower.gameObject);
         }
 
+        //skateboard weewoo
+        skateboardControl.SetUp();
+        toggleBoard = playerInput.actions.FindAction("ToggleSkateboard");
+        //
         DontDestroyOnLoad(gameObject);
     }
 
+    private void ToggleBoard(InputAction.CallbackContext context)
+    {
+        if(skateboardCooldownCounter > 0f) return;
+        if(onSkateboard == true)
+        {
+            
+        }
+
+    }
     public void Start()
     {
         if (!JoinedThroughGameManager)
@@ -137,6 +160,8 @@ public class PlayerController : MonoBehaviour
         CameraFollower.OrbitInput = inputVal.Get<float>();
     }
 
+
+    
     /// <summary>
     /// Calculate movement direction based on camera orientation
     /// </summary>
@@ -148,6 +173,8 @@ public class PlayerController : MonoBehaviour
         cameraAlignedRight = cameraRotation * Vector3.right;
         
         moveDirection = ((cameraAlignedForward * inputVector.y) + (cameraAlignedRight * inputVector.x)).normalized;
+
+        
     }
 
     /// <summary>
@@ -155,9 +182,13 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     void FixedUpdate()
     {
-        if (moveController.enabled) {
+        if (moveController.enabled && onSkateboard == false) {
             moveController.ApplyMovement(moveDirection);
             moveController.UpdateMovement();
+        }
+        else if (onSkateboard == true)
+        {
+            skateboardControl.UpdateBoard();
         }
 
         // Normal movement
