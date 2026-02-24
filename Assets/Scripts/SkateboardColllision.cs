@@ -3,11 +3,12 @@ using UnityEngine;
 public class SkateboardColllision : MonoBehaviour
 {
     public SkateboardControl skateboardControl;
-    public void OnCollisionEnter(Collision collision)
+    public void OnCollisionStay(Collision collision)
     {
         if(skateboardControl != null)
         {
             skateboardControl.UpdateGroundData(collision);
         }
     }
+
 }

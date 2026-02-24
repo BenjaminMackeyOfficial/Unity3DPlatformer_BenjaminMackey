@@ -27,6 +27,7 @@ public class PlayerController : MonoBehaviour
     private HealthController healthComponent;
     private PlayerInput playerInput;
     //skateboard stuff----------------
+    private CapsuleCollider collider;
     private InputAction toggleBoard;
     private bool onSkateboard = false;
     private float skateboardCooldownCounter = 0f;
@@ -78,6 +79,8 @@ public class PlayerController : MonoBehaviour
         characterAnimator = GetComponentInChildren<Animator>();
         healthComponent = GetComponent<HealthController>();
 
+        collider = GetComponent<CapsuleCollider>();
+
         if (CameraFollower)
         {
             if (playerInput.camera == null) {
@@ -100,11 +103,18 @@ public class PlayerController : MonoBehaviour
         if(skateboardCooldownCounter > 0f) return;
         if(onSkateboard == true)
         {
+            onSkateboard = false;
             skateboardControl.DissableBoard();
+
+            collider.isTrigger = false;
+            rb.isKinematic = false;
         }
         else
         {
-            skateboardControl.EnableBoard();
+            collider.isTrigger = true;
+            rb.isKinematic = true;
+            onSkateboard = true;
+            skateboardControl.EnableBoard(transform.rotation, moveDirection);
         }
 
     }
@@ -189,6 +199,7 @@ public class PlayerController : MonoBehaviour
     void FixedUpdate()
     {
         if (moveController.enabled && onSkateboard == false) {
+            
             moveController.ApplyMovement(moveDirection);
             moveController.UpdateMovement();
         }

@@ -356,6 +356,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   skateboardPrefab: {fileID: 1114918510367567052, guid: 22781328e93200a4f9588a6bc46e4c93,
     type: 3}
+  skateboardBodyPrefab: {fileID: 8975931498125296975, guid: 15eeec41303e0414fb64d71f5d9faf98,
+    type: 3}
+  maxLandAngle: 60
+  rotationSpeed: 5
 --- !u!1 &100018
 GameObject:
   m_ObjectHideFlags: 0
