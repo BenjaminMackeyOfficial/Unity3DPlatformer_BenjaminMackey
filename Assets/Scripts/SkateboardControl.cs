@@ -10,10 +10,9 @@ public class SkateboardControl : MonoBehaviour
     [SerializeField] GameObject skateboardPrefab;
 
     //contact info (like ground, not phone number)
-
     private quaternion setAngleToo = quaternion.identity;
     //-------------------------------------------
-    private bool setUp = true;
+    private bool setUp = false;
     public void SetUp()//called by player controller
     {
         if(setUp == true) return;
@@ -22,6 +21,7 @@ public class SkateboardControl : MonoBehaviour
             setUp = false;
             return;
         }
+
         skateBoard = Instantiate(skateboardPrefab); 
         boardRB = skateBoard.GetComponent<Rigidbody>();
         boardBody = skateBoard.transform.Find("SkateboardBody");
@@ -47,7 +47,7 @@ public class SkateboardControl : MonoBehaviour
         skateBoard.transform.position = transform.position;
     }
 
-    private void DissableBoard()
+    public void DissableBoard()
     {
         skateBoard.SetActive(false);
     }

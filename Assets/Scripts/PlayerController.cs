@@ -26,10 +26,12 @@ public class PlayerController : MonoBehaviour
 
     private HealthController healthComponent;
     private PlayerInput playerInput;
+    //skateboard stuff----------------
     private InputAction toggleBoard;
     private bool onSkateboard = false;
     private float skateboardCooldownCounter = 0f;
     public float skateboardTransitionCooldown;
+    //---------------------------------
     
     public bool JoinedThroughGameManager { get; set; } = false;
     public static List<PlayerController> players = new List<PlayerController>();
@@ -98,7 +100,11 @@ public class PlayerController : MonoBehaviour
         if(skateboardCooldownCounter > 0f) return;
         if(onSkateboard == true)
         {
-            
+            skateboardControl.DissableBoard();
+        }
+        else
+        {
+            skateboardControl.EnableBoard();
         }
 
     }
