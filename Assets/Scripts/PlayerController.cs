@@ -92,6 +92,7 @@ public class PlayerController : MonoBehaviour
         }
 
         //skateboard weewoo
+        skateboardControl.movement = playerInput.actions.FindAction("Move");
         skateboardControl.SetUp();
         toggleBoard = playerInput.actions.FindAction("ToggleSkateboard");
         //

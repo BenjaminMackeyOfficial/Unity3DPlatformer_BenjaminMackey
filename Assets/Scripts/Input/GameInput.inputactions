@@ -19,7 +19,7 @@
                     "name": "Jump",
                     "type": "Button",
                     "id": "99b9c396-6efd-4735-bf54-dadad78c4954",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -37,7 +37,7 @@
                     "name": "CameraOrbit",
                     "type": "Value",
                     "id": "1f93c39c-0541-45cb-8cdd-e043967d370a",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": true

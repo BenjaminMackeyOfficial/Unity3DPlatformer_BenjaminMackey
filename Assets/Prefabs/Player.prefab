@@ -360,6 +360,16 @@ MonoBehaviour:
     type: 3}
   maxLandAngle: 60
   rotationSpeed: 5
+  minumumControlSpeed: 1
+  movement:
+    m_Name: Movement
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: eeeabd4a-fb60-46b2-b46d-a74778ae81c1
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
 --- !u!1 &100018
 GameObject:
   m_ObjectHideFlags: 0
