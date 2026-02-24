@@ -1,6 +1,7 @@
 using Unity.Burst.CompilerServices;
 using Unity.IO.LowLevel.Unsafe;
 using Unity.Mathematics;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Experimental.GlobalIllumination;
 using UnityEngine.InputSystem;
@@ -9,7 +10,7 @@ public class SkateboardControl : MonoBehaviour
 {
     private GameObject skateBoard;
     private GameObject skateBoardBody;
-
+    private Rigidbody rb;
 
     private Rigidbody boardRB;
     private Transform playerPositionOnBoard;
@@ -35,13 +36,14 @@ public class SkateboardControl : MonoBehaviour
     private bool setUp = false;
     public void SetUp()//called by player controller
     {
+        
         if(setUp == true) return;
         if(skateboardPrefab == null)
         {
             setUp = false;
             return;
         }
-
+        rb = GetComponent<Rigidbody>();
         skateBoard = Instantiate(skateboardPrefab); 
         boardRB = skateBoard.GetComponent<Rigidbody>();
 
@@ -94,7 +96,7 @@ public class SkateboardControl : MonoBehaviour
         float ang = Mathf.Min(up, down);
 
 
-        Quaternion rot = Quaternion.AngleAxis(userTurnReq * 900f * Time.deltaTime, norm);
+        Quaternion rot = Quaternion.AngleAxis(userTurnReq * rotationSpeed * Time.deltaTime, norm);
         Vector3 newFwd = rot * skateBoardBody.transform.forward;
 
         Vector3 right = Vector3.Cross(newFwd, norm).normalized;
@@ -127,6 +129,7 @@ public class SkateboardControl : MonoBehaviour
         if(groundedBuffer > 0)userForwardForce = Mathf.Clamp(inputted.y, 0f,1f);
         else userLeanForwardReq = Mathf.Clamp(inputted.y, 0f,1f);
         
+
         userTurnReq = Mathf.Clamp(inputted.x, -1f,1f);
         
         allignMulti = Mathf.Clamp(boardRB.linearVelocity.sqrMagnitude / 1000f,0f,1f);
@@ -135,7 +138,13 @@ public class SkateboardControl : MonoBehaviour
     {
 
         UpdateControlValues();
-        boardRB.AddForce(userForwardForce * skateBoardBody.transform.forward * 50, ForceMode.Force);
+        Vector3 force = userForwardForce * skateBoardBody.transform.forward * 50;
+        Vector3 subtractForce = ((boardRB.linearVelocity.normalized  )* 50) * allignMulti;
+
+
+        Debug.Log(subtractForce + "" + force);
+        boardRB.AddForce( force + subtractForce.magnitude * skateBoardBody.transform.forward, ForceMode.Acceleration);//booster
+        boardRB.AddForce(-subtractForce, ForceMode.Acceleration);
 
         Vector3 vel = boardRB.linearVelocity;
         skateBoardBody.transform.position = Vector3.SmoothDamp( skateBoardBody.transform.position, skateBoard.transform.position,ref vel, 0.9f * Time.deltaTime);
@@ -145,9 +154,7 @@ public class SkateboardControl : MonoBehaviour
 
         
 
-        transform.position = playerPositionOnBoard.position;
-        transform.rotation = skateBoardBody.transform.rotation;
-        int
+        rb.Move( playerPositionOnBoard.position, skateBoardBody.transform.rotation);
         groundedBuffer =- 1;
         groundedBuffer = Mathf.Clamp(groundedBuffer, 0, 5);
     }

@@ -359,7 +359,7 @@ MonoBehaviour:
   skateboardBodyPrefab: {fileID: 8975931498125296975, guid: 15eeec41303e0414fb64d71f5d9faf98,
     type: 3}
   maxLandAngle: 60
-  rotationSpeed: 5
+  rotationSpeed: 100
   minumumControlSpeed: 1
   movement:
     m_Name: Movement
