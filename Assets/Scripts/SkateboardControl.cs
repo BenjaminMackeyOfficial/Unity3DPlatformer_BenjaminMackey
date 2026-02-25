@@ -5,6 +5,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Experimental.GlobalIllumination;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering.Universal.Internal;
 
 public class SkateboardControl : MonoBehaviour
 {
@@ -19,9 +20,10 @@ public class SkateboardControl : MonoBehaviour
     [SerializeField] float maxLandAngle;
     [SerializeField] float rotationSpeed;
     [SerializeField] float minumumControlSpeed;
+    [SerializeField] float speed;
     //contact info (like ground, not phone number)
     private Quaternion setAngleToo;
-
+    private Vector3 BoardUp;
     //-------------------------------------------
 
     //board control
@@ -90,29 +92,45 @@ public class SkateboardControl : MonoBehaviour
         groundedBuffer += 5;
 
         Vector3 norm = collision.contacts[0].normal;
-        
         float up = Vector3.Angle(skateBoardBody.transform.up, norm);
         float down = Vector3.Angle(-skateBoardBody.transform.up, norm);
         float ang = Mathf.Min(up, down);
-
-
-        Quaternion rot = Quaternion.AngleAxis(userTurnReq * rotationSpeed * Time.deltaTime, norm);
-        Vector3 newFwd = rot * skateBoardBody.transform.forward;
-
-        Vector3 right = Vector3.Cross(newFwd, norm).normalized;
-        newFwd = Vector3.Cross(norm, right).normalized;
-
-        setAngleToo = Quaternion.LookRotation(newFwd, norm);
-
+ 
         if(ang <= maxLandAngle)
         {
-            
-           
+            BoardUp = norm;
         }
         else
         {
             //fall off skateboard
         }
+    }
+    private void rotateAdjust()
+    {
+        //left and right rotation
+        Vector3 newFwd = skateBoardBody.transform.forward;
+
+        Quaternion rot = Quaternion.AngleAxis(userTurnReq * rotationSpeed * Time.deltaTime, BoardUp);
+        newFwd = rot *  newFwd;
+
+        Vector3 right = Vector3.Cross(newFwd, BoardUp).normalized;
+
+        newFwd = Vector3.Cross(BoardUp, right).normalized;
+
+        setAngleToo = Quaternion.LookRotation(newFwd, BoardUp);
+        
+        if(groundedBuffer > 0) return;
+        //forward and backward rotation
+
+
+        
+        Quaternion rotU = Quaternion.AngleAxis(userForwardForce * rotationSpeed * Time.deltaTime, right);
+        newFwd = rotU * newFwd;
+        right = Vector3.Cross(newFwd, BoardUp).normalized;
+        newFwd = Vector3.Cross(BoardUp, right).normalized;
+
+        setAngleToo = Quaternion.LookRotation(newFwd, BoardUp);
+
     }
 
    
@@ -124,13 +142,13 @@ public class SkateboardControl : MonoBehaviour
 
         userForwardForce = 0;
         userLeanForwardReq = 0;
-        userTurnReq = 0;
 
-        if(groundedBuffer > 0)userForwardForce = Mathf.Clamp(inputted.y, 0f,1f);
-        else userLeanForwardReq = Mathf.Clamp(inputted.y, 0f,1f);
+
+        userForwardForce = Mathf.Clamp(inputted.y, -1f,1f);
         
-
-        userTurnReq = Mathf.Clamp(inputted.x, -1f,1f);
+        userTurnReq *= 0.9f;
+        userTurnReq += Mathf.Clamp(inputted.x, -0.2f,0.2f);
+        Debug.Log(userTurnReq);
         
         allignMulti = Mathf.Clamp(boardRB.linearVelocity.sqrMagnitude / 1000f,0f,1f);
     }
@@ -138,13 +156,19 @@ public class SkateboardControl : MonoBehaviour
     {
 
         UpdateControlValues();
-        Vector3 force = userForwardForce * skateBoardBody.transform.forward * 50;
-        Vector3 subtractForce = ((boardRB.linearVelocity.normalized  )* 50) * allignMulti;
+        
+        rotateAdjust();
 
+        Vector3 force = userForwardForce * skateBoardBody.transform.forward * speed;
+        Vector3 subtractForce = ((boardRB.linearVelocity.normalized  )* speed) * allignMulti;
 
-        Debug.Log(subtractForce + "" + force);
-        boardRB.AddForce( force + subtractForce.magnitude * skateBoardBody.transform.forward, ForceMode.Acceleration);//booster
-        boardRB.AddForce(-subtractForce, ForceMode.Acceleration);
+        
+        if(groundedBuffer > 0)
+        {
+            boardRB.AddForce( force + subtractForce.magnitude * skateBoardBody.transform.forward, ForceMode.Acceleration);//booster
+            boardRB.AddForce(-(subtractForce), ForceMode.Acceleration);
+        }
+        
 
         Vector3 vel = boardRB.linearVelocity;
         skateBoardBody.transform.position = Vector3.SmoothDamp( skateBoardBody.transform.position, skateBoard.transform.position,ref vel, 0.9f * Time.deltaTime);

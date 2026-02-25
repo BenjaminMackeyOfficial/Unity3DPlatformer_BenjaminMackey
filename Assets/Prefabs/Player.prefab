@@ -361,6 +361,7 @@ MonoBehaviour:
   maxLandAngle: 60
   rotationSpeed: 100
   minumumControlSpeed: 1
+  speed: 10
   movement:
     m_Name: Movement
     m_Type: 0
