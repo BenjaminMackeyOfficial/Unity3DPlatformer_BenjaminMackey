@@ -78,7 +78,6 @@ public class PlayerController : MonoBehaviour
         CameraFollower = GetComponentInChildren<ThirdPersonCamera>();
         characterAnimator = GetComponentInChildren<Animator>();
         healthComponent = GetComponent<HealthController>();
-
         collider = GetComponent<CapsuleCollider>();
 
         if (CameraFollower)
@@ -92,6 +91,7 @@ public class PlayerController : MonoBehaviour
         }
 
         //skateboard weewoo
+        skateboardControl.playerController = this;
         skateboardControl.movement = playerInput.actions.FindAction("Move");
         skateboardControl.SetUp();
         toggleBoard = playerInput.actions.FindAction("ToggleSkateboard");
@@ -99,7 +99,7 @@ public class PlayerController : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
-    private void ToggleBoard(InputAction.CallbackContext context)
+    public void ToggleBoard(InputAction.CallbackContext context)
     {
         if(skateboardCooldownCounter > 0f) return;
         if(onSkateboard == true)
@@ -109,13 +109,39 @@ public class PlayerController : MonoBehaviour
 
             collider.isTrigger = false;
             rb.isKinematic = false;
+            skateboardControl.enabled = false;
         }
         else
         {
+            skateboardControl.enabled = true;
             collider.isTrigger = true;
             rb.isKinematic = true;
             onSkateboard = true;
-            skateboardControl.EnableBoard(transform.rotation, moveDirection);
+            skateboardControl.SetUp();
+            skateboardControl.EnableBoard(transform.rotation, moveDirection + transform.forward);
+        }
+
+    }
+    public void ToggleBoard()
+    {
+        if(skateboardCooldownCounter > 0f) return;
+        if(onSkateboard == true)
+        {
+            onSkateboard = false;
+            skateboardControl.DissableBoard();
+
+            collider.isTrigger = false;
+            rb.isKinematic = false;
+            skateboardControl.enabled = false;
+        }
+        else
+        {
+            skateboardControl.enabled = true;
+            collider.isTrigger = true;
+            rb.isKinematic = true;
+            onSkateboard = true;
+            skateboardControl.SetUp();
+            skateboardControl.EnableBoard(transform.rotation, moveDirection + transform.forward);
         }
 
     }

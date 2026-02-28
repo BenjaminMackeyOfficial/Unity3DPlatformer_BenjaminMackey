@@ -6,24 +6,29 @@ using UnityEngine;
 using UnityEngine.Experimental.GlobalIllumination;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal.Internal;
+using UnityEngine.Timeline;
 
 public class SkateboardControl : MonoBehaviour
 {
     private GameObject skateBoard;
     private GameObject skateBoardBody;
     private Rigidbody rb;
-
+    public PlayerController playerController;
+    public SkateboardVisuals visuals;
     private Rigidbody boardRB;
+    private Rigidbody dirRB;
     private Transform playerPositionOnBoard;
     [SerializeField] GameObject skateboardPrefab;
     [SerializeField] GameObject skateboardBodyPrefab;
     [SerializeField] float maxLandAngle;
     [SerializeField] float rotationSpeed;
+    [SerializeField] float pitchRotationSpeed;
     [SerializeField] float minumumControlSpeed;
     [SerializeField] float speed;
     //contact info (like ground, not phone number)
     private Quaternion setAngleToo;
     private Vector3 BoardUp;
+    private Vector3 BoardForward;
     //-------------------------------------------
 
     //board control
@@ -36,6 +41,17 @@ public class SkateboardControl : MonoBehaviour
 
     //
     private bool setUp = false;
+
+    public void ResetBoard()
+    {
+        setUp = false;
+        Destroy(skateBoard);
+        Destroy(skateBoardBody);
+    }
+    public void PingDissable()
+    {
+        playerController.ToggleBoard();
+    }
     public void SetUp()//called by player controller
     {
         
@@ -50,7 +66,7 @@ public class SkateboardControl : MonoBehaviour
         boardRB = skateBoard.GetComponent<Rigidbody>();
 
         skateBoardBody = Instantiate(skateboardBodyPrefab);
-
+        dirRB = skateBoardBody.GetComponent<Rigidbody>();
         playerPositionOnBoard = skateBoardBody.transform.Find("PlayerHolder");
 
         
@@ -65,19 +81,22 @@ public class SkateboardControl : MonoBehaviour
         )
         { 
             setUp = true;
+            visuals = skateBoardBody.GetComponent<SkateboardVisuals>();
             skateBoard.GetComponent<SkateboardColllision>().skateboardControl = this;
         }
     }
 
     public void EnableBoard(quaternion initRot, Vector3 initSpeed)
     {
+
         skateBoard.SetActive(true);
         setAngleToo = initRot;
+        BoardUp = Vector3.up;
         boardRB.linearVelocity = Vector3.zero;
         boardRB.AddForce(initSpeed * 20, ForceMode.Impulse);
         skateBoard.transform.position = transform.position;
-        
         skateBoardBody.SetActive(true);
+
     }
 
     public void DissableBoard()
@@ -99,37 +118,57 @@ public class SkateboardControl : MonoBehaviour
         if(ang <= maxLandAngle)
         {
             BoardUp = norm;
+
+            Quaternion quat = Quaternion.FromToRotation(skateBoardBody.transform.up, BoardUp);
+            BoardForward = quat * skateBoardBody.transform.forward;
         }
         else
         {
+            ResetBoard();
+            PingDissable();
+            
+            transform.position += Vector3.up * 2;
             //fall off skateboard
         }
     }
     private void rotateAdjust()
     {
-        //left and right rotation
-        Vector3 newFwd = skateBoardBody.transform.forward;
-
-        Quaternion rot = Quaternion.AngleAxis(userTurnReq * rotationSpeed * Time.deltaTime, BoardUp);
-        newFwd = rot *  newFwd;
-
-        Vector3 right = Vector3.Cross(newFwd, BoardUp).normalized;
-
-        newFwd = Vector3.Cross(BoardUp, right).normalized;
-
-        setAngleToo = Quaternion.LookRotation(newFwd, BoardUp);
-        
-        if(groundedBuffer > 0) return;
-        //forward and backward rotation
-
+        Vector3 newFwd = BoardForward;
+        Vector3 newUp = BoardUp;
 
         
-        Quaternion rotU = Quaternion.AngleAxis(userForwardForce * rotationSpeed * Time.deltaTime, right);
-        newFwd = rotU * newFwd;
-        right = Vector3.Cross(newFwd, BoardUp).normalized;
-        newFwd = Vector3.Cross(BoardUp, right).normalized;
+        Quaternion yawRot = Quaternion.AngleAxis(
+            userTurnReq * rotationSpeed * Time.deltaTime,
+            newUp
+        );
 
-        setAngleToo = Quaternion.LookRotation(newFwd, BoardUp);
+        newFwd = yawRot * newFwd;
+        newUp = yawRot * newUp;
+
+        Debug.Log(groundedBuffer);
+        setAngleToo = Quaternion.LookRotation(newFwd, newUp);
+        if (groundedBuffer > 0)
+        {
+            return;
+        }
+        
+        
+        Vector3 right = Vector3.Cross(newUp, newFwd).normalized;
+
+
+        Quaternion pitchRot = Quaternion.AngleAxis(
+            userForwardForce * pitchRotationSpeed * Time.deltaTime,
+            right
+        );
+
+        newFwd = pitchRot * newFwd;
+        newUp = pitchRot * newUp;
+
+        BoardForward = newFwd;
+        BoardUp = newUp;
+
+        setAngleToo = Quaternion.LookRotation(newFwd, newUp);
+        
 
     }
 
@@ -137,24 +176,22 @@ public class SkateboardControl : MonoBehaviour
 
     private void UpdateControlValues()
     {
-        if(movement == null) return;
+        if(movement == null || boardRB == null) return;
         Vector2 inputted = movement.ReadValue<Vector2>();
 
         userForwardForce = 0;
         userLeanForwardReq = 0;
 
-
         userForwardForce = Mathf.Clamp(inputted.y, -1f,1f);
         
         userTurnReq *= 0.9f;
         userTurnReq += Mathf.Clamp(inputted.x, -0.2f,0.2f);
-        Debug.Log(userTurnReq);
         
         allignMulti = Mathf.Clamp(boardRB.linearVelocity.sqrMagnitude / 1000f,0f,1f);
     }
     public void UpdateBoard()
     {
-
+        if(!setUp) return;
         UpdateControlValues();
         
         rotateAdjust();
@@ -171,14 +208,25 @@ public class SkateboardControl : MonoBehaviour
         
 
         Vector3 vel = boardRB.linearVelocity;
-        skateBoardBody.transform.position = Vector3.SmoothDamp( skateBoardBody.transform.position, skateBoard.transform.position,ref vel, 0.9f * Time.deltaTime);
+        //skateBoardBody.transform.position = Vector3.SmoothDamp( skateBoardBody.transform.position, skateBoard.transform.position,ref vel, 0.9f * Time.deltaTime);
 
         Quaternion implied = Quaternion.Lerp(skateBoardBody.transform.rotation, setAngleToo, rotationSpeed * Time.deltaTime);
-        skateBoardBody.transform.rotation = implied;
-
+        //skateBoardBody.transform.rotation = implied;
+        dirRB.interpolation = RigidbodyInterpolation.Interpolate;
+        dirRB.Move(Vector3.SmoothDamp( skateBoardBody.transform.position, skateBoard.transform.position,ref vel, 0.9f * Time.deltaTime), implied);
+        
         
 
         rb.Move( playerPositionOnBoard.position, skateBoardBody.transform.rotation);
+        
+        //BoardForward = skateBoardBody.transform.forward;
+        //BoardUp = skateBoardBody.transform.up;
+        
+        visuals.realBoardTransform = skateBoardBody.transform;
+        visuals.boardForward = skateBoardBody.transform.forward;
+        visuals.boardVelForward = boardRB.linearVelocity.normalized;
+        visuals.UpdateVisuals();
+
         groundedBuffer =- 1;
         groundedBuffer = Mathf.Clamp(groundedBuffer, 0, 5);
     }
